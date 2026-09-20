@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen Studio — Local Recorder</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <span class="dot"></span>
+      <span>Screen Studio<small>Runs offline in your browser — nothing is uploaded</small></span>
+    </div>
+    <div class="spacer"></div>
+    <button class="linkbtn" id="btnHelp">Keyboard shortcuts</button>
+  </header>
+
+  <div class="body">
+    <section class="stage">
+      <div class="screenbox" id="screenbox">
+        <div class="empty" id="empty">
+          <div class="grabber"><i></i></div>
+          <h2>Pick what you want to record</h2>
+          <p>Your browser will ask which screen, window or tab to capture. Add your camera and voice on the right, then hit record.</p>
+          <button class="btn primary" id="emptyPick">Choose what to record</button>
+        </div>
+        <canvas id="cv" class="hidden"></canvas>
+        <video id="preview" class="hidden" playsinline></video>
+        <div class="badge hidden" id="badge"><i></i><span id="recTime">00:00</span></div>
+        <div class="draghint hidden" id="dragHint">Drag the camera to reposition it</div>
+        <div class="countdown hidden" id="countdown"><span>3</span></div>
+      </div>
+
+      <!-- setup / recording controls -->
+      <div class="bar" id="barSetup">
+        <button class="btn" id="btnSource">
+          <svg viewBox="0 0 24 24"><path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-8v2h3v2H8v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h16V6H4z"/></svg>
+          <span id="sourceLabel">Choose source</span>
+        </button>
+        <div class="sep"></div>
+        <button class="btn icon" id="btnMicQuick" title="Microphone (M)"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>
+        <button class="btn icon" id="btnCamQuick" title="Camera (C)"><svg viewBox="0 0 24 24"><path d="M4 6h10a2 2 0 0 1 2 2v1.6l4.3-2.5a.8.8 0 0 1 1.2.7v8.4a.8.8 0 0 1-1.2.7L16 14.4V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg></button>
+        <div class="push"></div>
+        <span class="tc" id="readyInfo"></span>
+        <button class="btn rec" id="btnStart" disabled>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg>
+          Start recording
+        </button>
+      </div>
+
+      <div class="bar hidden" id="barRec">
+        <button class="btn icon" id="btnMicLive" title="Mute microphone (M)"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>
+        <button class="btn icon" id="btnCamLive" title="Hide camera (C)"><svg viewBox="0 0 24 24"><path d="M4 6h10a2 2 0 0 1 2 2v1.6l4.3-2.5a.8.8 0 0 1 1.2.7v8.4a.8.8 0 0 1-1.2.7L16 14.4V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg></button>
+        <div class="sep"></div>
+        <button class="btn" id="btnPause"><svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg><span>Pause</span></button>
+        <div class="push"></div>
+        <span class="tc" id="sizeInfo"></span>
+        <button class="btn primary" id="btnStop"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop &amp; edit</button>
+      </div>
+
+      <!-- editor -->
+      <div class="editor hidden" id="editor">
+        <div class="tl" id="tl">
+          <div class="wave" id="wave"></div>
+          <div class="dim" id="dimL"></div>
+          <div class="dim" id="dimR"></div>
+          <div class="sel" id="sel"></div>
+          <div class="handle" id="hL"></div>
+          <div class="handle" id="hR"></div>
+          <div class="ph" id="ph"></div>
+        </div>
+        <div class="tlrow">
+          <button class="btn icon" id="btnPlay"><svg viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z"/></svg></button>
+          <span class="tc"><b id="tcCur" style="color:var(--text);font-weight:500">0:00.0</b> / <span id="tcDur">0:00.0</span></span>
+          <div class="sep"></div>
+          <button class="btn" id="btnSetIn">Trim start here</button>
+          <button class="btn" id="btnSetOut">Trim end here</button>
+          <button class="btn" id="btnResetTrim">Reset</button>
+          <div class="push"></div>
+          <span class="tc" id="clipInfo"></span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <!-- SETUP RAIL -->
+      <div id="railSetup">
+        <div class="sect">
+          <h3>What to capture</h3>
+          <div class="seg" id="modeSeg">
+            <button data-mode="screen" aria-pressed="false">Screen</button>
+            <button data-mode="screencam" aria-pressed="true">Screen + camera</button>
+            <button data-mode="cam" aria-pressed="false">Camera only</button>
+          </div>
+          <p class="hint" id="modeHint">You'll choose the exact screen, window or tab when you pick a source.</p>
+        </div>
+
+        <div class="sect" id="camSect">
+          <h3>Camera <span class="tag" id="camTag"></span></h3>
+          <div class="field">
+            <label for="camSelect">Device</label>
+            <select id="camSelect"><option>Default camera</option></select>
+          </div>
+          <div class="field" id="camLayoutFields">
+            <label for="camSize">Size on screen</label>
+            <div class="slider"><input type="range" id="camSize" min="8" max="42" value="18"><span class="val" id="camSizeVal">18%</span></div>
+          </div>
+          <div class="field">
+            <label>Shape</label>
+            <div class="seg two" id="camShape">
+              <button data-shape="circle" aria-pressed="true">Circle</button>
+              <button data-shape="rounded" aria-pressed="false">Rounded</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Position</label>
+            <div class="posgrid" id="posGrid"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="camMirror" checked><span class="box"></span>Mirror my camera</label>
+          <label class="check"><input type="checkbox" id="camBorder" checked><span class="box"></span>Ring and drop shadow</label>
+          <p class="hint">Drag the camera inside the preview for a custom spot.</p>
+        </div>
+
+        <div class="sect">
+          <h3>Sound</h3>
+          <label class="check"><input type="checkbox" id="micOn" checked><span class="box"></span>Record my microphone</label>
+          <div class="field" id="micFields">
+            <select id="micSelect"><option>Default microphone</option></select>
+            <div class="meter"><i id="meterBar"></i></div>
+          </div>
+          <label class="check"><input type="checkbox" id="sysOn"><span class="box"></span>Record computer sound</label>
+          <p class="hint" id="sysHint">Tick “Also share tab audio” (or “Share system audio”) in the browser's picker, otherwise there's nothing to capture. Chrome and Edge only.</p>
+        </div>
+
+        <div class="sect">
+          <h3>Video quality</h3>
+          <div class="two-up">
+            <div class="field">
+              <label for="resSelect">Resolution</label>
+              <select id="resSelect">
+                <option value="source">Match source</option>
+                <option value="1440">1440p</option>
+                <option value="1080" selected>1080p</option>
+                <option value="720">720p</option>
+                <option value="540">540p (small file)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fpsSelect">Frame rate</label>
+              <select id="fpsSelect">
+                <option value="60">60 fps</option>
+                <option value="30" selected>30 fps</option>
+                <option value="24">24 fps</option>
+                <option value="15">15 fps</option>
+              </select>
+            </div>
+          </div>
+          <div class="two-up">
+            <div class="field">
+              <label for="qSelect">Bitrate</label>
+              <select id="qSelect">
+                <option value="high">High</option>
+                <option value="med" selected>Balanced</option>
+                <option value="low">Small file</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fmtSelect">File format</label>
+              <select id="fmtSelect"></select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="cdSelect">Countdown before recording</label>
+            <select id="cdSelect">
+              <option value="0">None</option>
+              <option value="3" selected>3 seconds</option>
+              <option value="5">5 seconds</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDIT RAIL -->
+      <div id="railEdit" class="hidden">
+        <div class="sect">
+          <h3>Your recording</h3>
+          <div class="kv"><span>Full length</span><b id="kvFull">—</b></div>
+          <div class="kv"><span>After trimming</span><b id="kvTrim">—</b></div>
+          <div class="kv"><span>Resolution</span><b id="kvRes">—</b></div>
+          <div class="kv"><span>Size</span><b id="kvSize">—</b></div>
+        </div>
+        <div class="sect">
+          <h3>Save the video</h3>
+          <div class="field">
+            <label for="fileName">File name</label>
+            <input type="text" id="fileName" spellcheck="false">
+          </div>
+          <div class="field">
+            <button class="btn primary" id="btnExport" style="width:100%;justify-content:center">
+              <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3zM5 18h14v2H5z"/></svg>
+              Save trimmed video
+            </button>
+          </div>
+          <div class="progress hidden" id="expProgWrap"><i id="expProg"></i></div>
+          <p class="hint hidden" id="expNote"></p>
+          <div class="field">
+            <button class="btn" id="btnExportRaw" style="width:100%;justify-content:center">Save full recording (instant)</button>
+          </div>
+          <p class="hint">Trimming re-encodes the clip in real time, so a 2 minute cut takes about 2 minutes. Saving the full recording is instant.</p>
+        </div>
+        <div class="sect">
+          <h3>Start over</h3>
+          <button class="btn" id="btnNew" style="width:100%;justify-content:center">Record something new</button>
+          <p class="hint">Save first — the current recording is dropped when you start a new one.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<dialog id="dlgHelp">
+  <div class="dlg-h">Shortcuts and good-to-knows</div>
+  <div class="dlg-b">
+    <h4>While setting up or recording</h4>
+    <p><kbd>R</kbd> start or stop recording · <kbd>Space</kbd> pause and resume · <kbd>M</kbd> mute the mic · <kbd>C</kbd> show or hide the camera</p>
+    <h4>In the editor</h4>
+    <p><kbd>Space</kbd> play and pause · <kbd>I</kbd> set the trim start · <kbd>O</kbd> set the trim end · <kbd>←</kbd> <kbd>→</kbd> nudge by a second (hold <kbd>Shift</kbd> for 5) · <kbd>Home</kbd> jump to the trim start</p>
+    <h4>Recording other apps</h4>
+    <p>The recorder keeps drawing frames even when this tab sits in the background, so you can switch away freely. If you can, park this tab on a second monitor to watch the timer.</p>
+    <h4>Computer sound</h4>
+    <p>Browsers only hand over system or tab audio if you tick the audio box inside the sharing dialog, and on Windows that option appears for a whole screen or a tab, not for a single window.</p>
+    <h4>Sharing the file</h4>
+    <p>WebM plays in any browser, Slack, Discord and VLC. If the person receiving it needs a file for PowerPoint or iMovie, pick MP4 in the format list when your browser offers it.</p>
+  </div>
+  <div class="dlg-f"><button class="btn" onclick="document.getElementById('dlgHelp').close()">Got it</button></div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
